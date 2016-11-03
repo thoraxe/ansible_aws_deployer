@@ -46,21 +46,26 @@
 
 ######################### Run COMMON Tasks on all hosts
 
-- name: Wait for readiness
-  hosts: localhost
-  vars_files:
-    - "../Environments/{{config}}_vars.yml"
-  gather_facts: False
-  become: false
-  any_errors_fatal: true
-  tags: [ wait_ssh ]
-  tasks:
-    - name: wait for host to be available
-      wait_for:
-        host: '{{ inventory_hostname }}' 
-        port: 22
-        search_regex: OpenSSH
-      with_items: "{{ groups['allhosts'] }}"
+# - name: Wait for readiness
+#   hosts: localhost
+#   vars_files:
+#     - "../Environments/{{config}}_vars.yml"
+#   gather_facts: False
+#   become: false
+#   any_errors_fatal: false
+#   tags: [ wait_ssh ]
+#   tasks:
+#     - name: wait for host to be available
+#       wait_for:
+#         host: '{{ inventory_hostname }}'
+#         port: 22
+#         state: started
+#       with_items: "{{ groups['allhosts'] }}"
+
+  # - name: Wait for hosts to be available
+  #   wait_for: host="{{ inventory_hostname }}" port=22 state=started timeout=10
+  #   with_items: "{{ groups['allhosts'] }}"
+  - pause: minutes=2
 
 - name: Configuring common Hosts
   hosts: bastions,nfs,masters,infranodes,nodes
@@ -236,7 +241,7 @@
 
   # this would go a lot faster if we just ran a single for loop as a shell
   # on the remote server
-  - name: Add users to htpasswd file 
+  - name: Add users to htpasswd file
     command: "htpasswd -b /etc/origin/master/htpasswd {{ item }} openshift3"
     with_sequence: start=0 end={{ user_vols }} format=user%02d
 
@@ -254,7 +259,7 @@
     command: oc get projects
     register: projects
 
-  # this could go faster if we could figure out a way to pass all items 
+  # this could go faster if we could figure out a way to pass all items
   # to a script
   - name: Create project
     command: "oc adm new-project explore-{{ item }} --admin=user{{ item }}"
@@ -337,7 +342,7 @@
       command: "oc patch scc/anyuid --patch '{\"requiredDropCapabilities\":[\"MKNOD\",\"SYS_CHROOT\"]}'"
 
     - name: Copy nexus.yaml to master
-      copy: 
+      copy:
         src: files/bu-workshop/nexus.yaml
         dest: /root/nexus.yaml
 
@@ -352,7 +357,7 @@
 
     # looks like we need a better check - it seems we're ready up to several
     # seconds before the router finds out about us, so we might want another
-    # http check to make sure nexus is responding 
+    # http check to make sure nexus is responding
     - name: Wait for Nexus to be running
       command: "oc get dc/nexus -o yaml -n workshop-infra"
       register: result
@@ -380,7 +385,7 @@
         dest: /root/addrepo.sh
 
     - name: Check for redhat-ga repository in Nexus
-      uri: 
+      uri:
         url: "http://nexus.workshop-infra.svc.cluster.local:8081/content/repositories/redhat-ga"
         status_code: 200
       register: redhat_ga_out
@@ -391,7 +396,7 @@
       when: redhat_ga_out | failed
 
     - name: Check for JBoss repository in Nexus
-      uri: 
+      uri:
         url: "http://nexus.workshop-infra.svc.cluster.local:8081/content/repositories/jboss"
         status_code: 200
       register: redhat_ga_out
@@ -402,7 +407,7 @@
       when: redhat_ga_out | failed
 
     - name: Copy gitlab-template.yaml to master
-      copy: 
+      copy:
         src: files/bu-workshop/gitlab-template.yaml
         dest: /root/gitlab-template.yaml
 
@@ -413,8 +418,8 @@
 
     - name: Instantiate Gitlab from template
       shell: >
-        oc process -f /root/gitlab-template.yaml 
-        -v APPLICATION_HOSTNAME=gitlab-ce-workshop-infra.{{cloudapps_suffix}} 
+        oc process -f /root/gitlab-template.yaml
+        -v APPLICATION_HOSTNAME=gitlab-ce-workshop-infra.{{cloudapps_suffix}}
         -v GITLAB_ROOT_PASSWORD=password | oc create -f - -n workshop-infra
       when: install_gitlab | failed
       tags:
@@ -430,8 +435,8 @@
         - "wait-for-gitlab"
 
     - name: Set Gitlab internal hostname
-      set_fact: 
-        gitlab_hostname: 'gitlab-ce.workshop-infra.svc.cluster.local'  
+      set_fact:
+        gitlab_hostname: 'gitlab-ce.workshop-infra.svc.cluster.local'
       tags:
         - "gitlab-hostname"
 
@@ -474,7 +479,7 @@
       copy:
         src: files/bu-workshop/java-s2i-is.yaml
         dest: /root/java-s2i-is.yaml
-      tags: 
+      tags:
         - "copy-java-s2i-is"
 
     - name: Create simple-java-s2i IS in openshift namespace
@@ -552,9 +557,8 @@
         dest: /home/ec2-user/maven.xml
         mode: 0755
         owner: ec2-user
-        
+
     - name: Build and cache dependencies
       shell: >
         mvn -q -s /home/ec2-user/maven.xml -f /home/ec2-user/repos/{{ item }}/pom.xml install
       with_items: '{{workshop_repos}}'
-
