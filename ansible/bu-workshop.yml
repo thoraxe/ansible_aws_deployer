@@ -46,26 +46,26 @@
 
 ######################### Run COMMON Tasks on all hosts
 
-# - name: Wait for readiness
-#   hosts: localhost
-#   vars_files:
-#     - "../Environments/{{config}}_vars.yml"
-#   gather_facts: False
-#   become: false
-#   any_errors_fatal: false
-#   tags: [ wait_ssh ]
-#   tasks:
-#     - name: wait for host to be available
-#       wait_for:
-#         host: '{{ inventory_hostname }}'
-#         port: 22
-#         state: started
-#       with_items: "{{ groups['allhosts'] }}"
+- name: Wait for readiness
+  hosts: localhost
+  vars_files:
+    - "../Environments/{{config}}_vars.yml"
+  gather_facts: False
+  become: false
+  any_errors_fatal: false
+  tags: [ wait_ssh ]
+  tasks:
+    - name: wait for host to be available
+      wait_for:
+        host: '{{ item.public_hostname }}'
+        port: 22
+        state: started
+      with_items: "{{ groups['allhosts'] }}"
 
   # - name: Wait for hosts to be available
-  #   wait_for: host="{{ inventory_hostname }}" port=22 state=started timeout=10
+  #   wait_for: host="{{ item.public_hostname }}" port=22 state=started timeout=10
   #   with_items: "{{ groups['allhosts'] }}"
-  - pause: minutes=2
+  # - pause: minutes=2
 
 - name: Configuring common Hosts
   hosts: bastions,nfs,masters,infranodes,nodes
