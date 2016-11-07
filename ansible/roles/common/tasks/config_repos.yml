@@ -13,9 +13,7 @@
 
 - name: create open.repo template on host
   template: src=files/repo_templates/repo_{{config}}.j2 dest=/etc/yum.repos.d/open_{{config}}.repo
-  tags:
-   - create_open_repo_template
-  tags: [ configure_repos, create_repos_file ]
+  tags: [ create_open_repo_template, configure_repos, create_repos_file ]
 
 - name: remove current repositories
   shell: "yum repolist"

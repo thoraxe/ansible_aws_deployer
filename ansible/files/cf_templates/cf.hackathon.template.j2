@@ -1,0 +1,649 @@
+  {
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "VpcCidrBlock": {
+      "Type": "String",
+      "Default": "10.20.0.0/16"
+    },
+    "VpcName": {
+      "Type": "String",
+      "Default": "hackathon"
+    },
+    "MasterApiPort": {
+      "Type": "Number",
+      "Default": "443"
+    },
+    "SubnetCidrBlocks": {
+      "Type": "String",
+      "Default": "10.20.1.0/24"
+    },
+    "MasterInstanceType": {
+      "Type": "String",
+      "Default": "{{ master_instance_type }}"
+    },
+    "MasterRootVolSize": {
+      "Type": "String",
+      "Default": "10"
+    },
+    "MasterDockerVolSize": {
+      "Type": "String",
+      "Default": "25"
+    },
+    "MasterEtcdVolSize": {
+      "Type": "String",
+      "Default": "25"
+    },
+    "MasterEmptyVolSize": {
+      "Type": "String",
+      "Default": "5"
+    },
+    "MasterEtcdVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "MasterEmptyVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "MasterDockerVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "MasterRootVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "InfraInstanceType": {
+      "Type": "String",
+      "Default": "{{ infranode_instance_type }}"
+    },
+    "InfraRootVolSize": {
+      "Type": "String",
+      "Default": "30"
+    },
+    "InfraDockerVolSize": {
+      "Type": "String",
+      "Default": "25"
+    },
+    "InfraDockerVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "InfraRootVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "NodeInstanceType": {
+      "Type": "String",
+      "Default": "{{ node_instance_type }}"
+    },
+    "NodeRootVolSize": {
+      "Type": "String",
+      "Default": "30"
+    },
+    "NodeDockerVolSize": {
+      "Type": "String",
+      "Default": "25"
+    },
+    "NodeDockerVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "NodeEmptyVolSize": {
+      "Type": "String",
+      "Default": "25"
+    },
+    "NodeEmptyVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    },
+    "NodeRootVolType": {
+      "Type": "String",
+      "Default": "gp2"
+    }
+  },
+  "Mappings": {
+    "RegionMapping": {
+      "us-east-1": {
+        "AMI": "ami-2051294a"
+      },
+      "us-west-1": {
+        "AMI": "ami-d1315fb1"
+      },
+      "us-west-2": {
+        "AMI": "ami-775e4f16"
+      },
+      "eu-west-1": {
+        "AMI": "ami-8b8c57f8"
+      },
+      "eu-central-1": {
+        "AMI": "ami-875042eb"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-0dd8f963"
+      },
+      "ap-northeast-2": {
+        "AMI": "ami-44db152a"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-3f03c55c"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-e0c19f83"
+      },
+      "sa-east-1": {
+        "AMI": "ami-27b3094b"
+      }
+    },
+    "DNSMapping": {
+      "us-east-1": {
+        "domain": "ec2.internal"
+      },
+      "us-west-1": {
+        "domain": "us-west-1.compute.internal"
+      },
+      "us-west-2": {
+        "domain": "us-west-2.compute.internal"
+      },
+      "eu-west-1": {
+        "domain": "eu-west-1.compute.internal"
+      },
+      "eu-central-1": {
+        "domain": "eu-central-1.compute.internal"
+      },
+      "ap-northeast-1": {
+        "domain": "ap-northeast-1.compute.internal"
+      },
+      "ap-northeast-2": {
+        "domain": "ap-northeast-2.compute.internal"
+      },
+      "ap-southeast-1": {
+        "domain": "ap-southeast-1.compute.internal"
+      },
+      "ap-southeast-2": {
+        "domain": "ap-southeast-2.compute.internal"
+      },
+      "sa-east-1": {
+        "domain": "sa-east-1.compute.internal"
+      }
+    }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "192.199.0.0/16",
+        "EnableDnsSupport": "true",
+        "EnableDnsHostnames": "true",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "VPCID_NAME_TAG"
+          },
+          {
+            "Key": "Application",
+            "Value": {
+              "Ref": "AWS::StackId"
+            }
+          }
+        ]
+      }
+    },
+    "VpcInternetGateway": {
+      "Type": "AWS::EC2::InternetGateway",
+      "Properties": {}
+    },
+    "VpcGA": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "VpcInternetGateway"
+        },
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "VpcRouteTable": {
+      "Type": "AWS::EC2::RouteTable",
+      "Properties": {
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "VPCRouteInternetGateway": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "GatewayId": {
+          "Ref": "VpcInternetGateway"
+        },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "RouteTableId": {
+          "Ref": "VpcRouteTable"
+        }
+      }
+    },
+    "PublicSubnet": {
+      "Type": "AWS::EC2::Subnet",
+      "DependsOn": [
+        "Vpc"
+      ],
+      "Properties": {
+        "CidrBlock": "192.199.0.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "{{project_tag}}"
+          },
+          {
+            "Key": "Application",
+            "Value": {
+              "Ref": "AWS::StackId"
+            }
+          }
+        ],
+        "MapPublicIpOnLaunch": "true",
+        "VpcId": {
+          "Ref": "Vpc"
+        }
+      }
+    },
+    "PublicSubnetRTA": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "VpcRouteTable"
+        },
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        }
+      }
+    },
+    "NodeSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Node",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ose_node_sg"
+          }
+        ]
+      }
+    },
+    "MasterSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Master",
+        "VpcId": {
+          "Ref": "Vpc"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "ose_master_sg"
+          }
+        ]
+      }
+    },
+    "MasterTCPPorts": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "MasterSG",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "0",
+        "ToPort": "65535",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "MasterUDPPorts": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "MasterSG",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "udp",
+        "FromPort": "0",
+        "ToPort": "65535",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "NodeUDPPorts": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "NodeSG",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "udp",
+        "FromPort": "0",
+        "ToPort": "65535",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "NodeTCPPorts": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Fn::GetAtt": [
+            "NodeSG",
+            "GroupId"
+          ]
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "0",
+        "ToPort": "65535",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "Master": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMapping",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "{{ master_instance_type }}",
+        "KeyName": "{{ amazon_ssh_key_name }}",
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "MasterSG",
+              "GroupId"
+            ]
+          }
+        ],
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "master"
+          },
+          {
+            "Key": "AnsibleGroup",
+            "Value": "masters"
+          },
+          {
+            "Key": "Project",
+            "Value": "{{project_tag}}"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "VolumeSize": 20
+            }
+          }
+        ]
+      }
+    },
+    "MasterDNS": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "DependsOn": "Master",
+      "Properties": {
+        "HostedZoneId": "Z2NC31FLL8GSH1",
+        "RecordSets": [
+          {
+            "Name": "{{master_public_dns}}",
+            "Type": "A",
+            "TTL": "10",
+            "ResourceRecords": [
+              {
+                "Fn::GetAtt": [
+                  "Master",
+                  "PublicIp"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "InfraNode": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMapping",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "{{ infranode_instance_type }}",
+        "KeyName": "{{ amazon_ssh_key_name }}",
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "NodeSG",
+              "GroupId"
+            ]
+          }
+        ],
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "infranode"
+          },
+          {
+            "Key": "AnsibleGroup",
+            "Value": "infranodes"
+          },
+          {
+            "Key": "Project",
+            "Value": "{{project_tag}}"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "VolumeSize": 60
+            }
+          }
+        ]
+      }
+    },
+    "CloudDNS": {
+      "Type": "AWS::Route53::RecordSetGroup",
+      "DependsOn": "InfraNode",
+      "Properties": {
+        "HostedZoneId": "Z2NC31FLL8GSH1",
+        "RecordSets": [
+          {
+            "Name": "{{cloudapps_dns}}",
+            "Type": "A",
+            "TTL": "10",
+            "ResourceRecords": [
+              {
+                "Fn::GetAtt": [
+                  "InfraNode",
+                  "PublicIp"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "AppLC": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "Properties": {
+        "AssociatePublicIpAddress": true,
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMapping",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "{{ node_instance_type }}",
+        "KeyName": "{{ amazon_ssh_key_name }}",
+        "SecurityGroups": [
+          {
+            "Ref": "NodeSG"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "VolumeSize": 60
+            }
+          }
+        ]
+      }
+    },
+    "AppAsg": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "DesiredCapacity": {{ number_of_nodes }},
+        "LaunchConfigurationName": {
+          "Ref": "AppLC"
+        },
+        "MaxSize": {{ number_of_nodes }},
+        "MinSize": {{ number_of_nodes }},
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "node",
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "AnsibleGroup",
+            "Value": "nodes",
+            "PropagateAtLaunch": true
+          },
+          {
+            "Key": "Project",
+            "Value": "{{project_tag}}",
+            "PropagateAtLaunch": true
+          }
+        ],
+        "VPCZoneIdentifier": [
+          {
+            "Ref": "PublicSubnet"
+          }
+        ]
+      }
+    },
+    "NFSNode": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMapping",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "{{ nfs_instance_type }}",
+        "KeyName": "{{ amazon_ssh_key_name }}",
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "NodeSG",
+              "GroupId"
+            ]
+          }
+        ],
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "nfs"
+          },
+          {
+            "Key": "AnsibleGroup",
+            "Value": "nfs"
+          },
+          {
+            "Key": "Project",
+            "Value": "{{project_tag}}"
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/xvdb",
+            "Ebs": {
+              "VolumeSize": 200
+            }
+          }
+        ]
+      }
+    },
+    "Bastion": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionMapping",
+            {
+              "Ref": "AWS::Region"
+            },
+            "AMI"
+          ]
+        },
+        "InstanceType": "{{ bastion_instance_type }}",
+        "KeyName": "{{ amazon_ssh_key_name }}",
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "NodeSG",
+              "GroupId"
+            ]
+          }
+        ],
+        "SubnetId": {
+          "Ref": "PublicSubnet"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "bastion"
+          },
+          {
+            "Key": "AnsibleGroup",
+            "Value": "bastions"
+          },
+          {
+            "Key": "Project",
+            "Value": "{{project_tag}}"
+          }
+        ]
+      }
+    }
+  }
+}
