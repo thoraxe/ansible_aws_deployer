@@ -46,6 +46,10 @@
 
 ######################### Run COMMON Tasks on all hosts
 
+  - name: "Debugging host items"
+    debug: msg="Looking at {{ hostvars[item].public_hostname }}"
+    with_inventory_hostnames: all
+
 - name: Wait for readiness
   hosts: localhost
   vars_files:
@@ -57,7 +61,7 @@
   tasks:
     - name: wait for host to be available
       wait_for:
-        host: '{{ item.public_hostname }}'
+        host: "{{ hostvars[item].public_hostname }}"
         port: 22
         state: started
       with_items: "{{ groups['allhosts'] }}"
