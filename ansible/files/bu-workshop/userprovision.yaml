@@ -8,7 +8,7 @@
   tasks:
 
   - name: 'Add user{{user}} to htpasswd file'
-    command: "htpasswd -b /etc/origin/master/htpasswd user{{ user }} openshift3"
+    command: "htpasswd -b /etc/origin/master/htpasswd user{{ user }} {{default_password}}"
 
   - name: 'Check for explore-{{user}} project'
     command: "oc get project explore-{{user}}"
@@ -33,7 +33,7 @@
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/users'
       HEADER_PRIVATE-TOKEN: "{{root_token}}"
-      body: 'confirm=false&email=user{{user}}@example.com&username=user{{user}}&name=user{{user}}&password=openshift3'
+      body: 'confirm=false&email=user{{user}}@example.com&username=user{{user}}&name=user{{user}}&password={{default_password}}'
       method: POST
       status_code: 201
       return_content: no
@@ -46,7 +46,7 @@
   - name: 'Get user{{user}} token'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/session'
-      body: 'login=user{{user}}&password=openshift3'
+      body: 'login=user{{user}}&password={{default_password}}'
       method: POST
       status_code: 201
     register: token_out
