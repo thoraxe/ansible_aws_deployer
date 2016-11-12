@@ -3,7 +3,7 @@
 - name: 'Get {{item}} token'
   uri:
     url: 'http://{{gitlab_hostname}}/api/v3/session'
-    body: 'login={{item}}&password=openshift3'
+    body: 'login={{item}}&password={{default_password}}'
     method: POST
     status_code: 201
   register: token_out

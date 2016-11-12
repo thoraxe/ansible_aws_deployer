@@ -210,7 +210,7 @@
   tasks:
 
   - name: Add administrative user to htpasswd file
-    command: "htpasswd -b /etc/origin/master/htpasswd admin openshift3"
+    command: "htpasswd -b /etc/origin/master/htpasswd admin {{default_password}}"
 
 - name: Create Workshop NFS shares
   hosts: nfs
