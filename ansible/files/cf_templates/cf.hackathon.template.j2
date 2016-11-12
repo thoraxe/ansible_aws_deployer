@@ -1,107 +1,6 @@
-  {
+{
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Parameters": {
-    "VpcCidrBlock": {
-      "Type": "String",
-      "Default": "10.20.0.0/16"
-    },
-    "VpcName": {
-      "Type": "String",
-      "Default": "hackathon"
-    },
-    "MasterApiPort": {
-      "Type": "Number",
-      "Default": "443"
-    },
-    "SubnetCidrBlocks": {
-      "Type": "String",
-      "Default": "10.20.1.0/24"
-    },
-    "MasterInstanceType": {
-      "Type": "String",
-      "Default": "{{ master_instance_type }}"
-    },
-    "MasterRootVolSize": {
-      "Type": "String",
-      "Default": "10"
-    },
-    "MasterDockerVolSize": {
-      "Type": "String",
-      "Default": "25"
-    },
-    "MasterEtcdVolSize": {
-      "Type": "String",
-      "Default": "25"
-    },
-    "MasterEmptyVolSize": {
-      "Type": "String",
-      "Default": "5"
-    },
-    "MasterEtcdVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "MasterEmptyVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "MasterDockerVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "MasterRootVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "InfraInstanceType": {
-      "Type": "String",
-      "Default": "{{ infranode_instance_type }}"
-    },
-    "InfraRootVolSize": {
-      "Type": "String",
-      "Default": "30"
-    },
-    "InfraDockerVolSize": {
-      "Type": "String",
-      "Default": "25"
-    },
-    "InfraDockerVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "InfraRootVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "NodeInstanceType": {
-      "Type": "String",
-      "Default": "{{ node_instance_type }}"
-    },
-    "NodeRootVolSize": {
-      "Type": "String",
-      "Default": "30"
-    },
-    "NodeDockerVolSize": {
-      "Type": "String",
-      "Default": "25"
-    },
-    "NodeDockerVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "NodeEmptyVolSize": {
-      "Type": "String",
-      "Default": "25"
-    },
-    "NodeEmptyVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    },
-    "NodeRootVolType": {
-      "Type": "String",
-      "Default": "gp2"
-    }
-  },
+  "Parameters": {},
   "Mappings": {
     "RegionMapping": {
       "us-east-1": {
@@ -399,7 +298,8 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "VolumeSize": 20
+              "VolumeSize": 15,
+              "VolumeType": "gp2"
             }
           }
         ]
@@ -470,7 +370,9 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "VolumeSize": 60
+              "VolumeSize": 80,
+              "VolumeType": "io1",
+              "Iops": 2400
             }
           }
         ]
@@ -522,7 +424,9 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "VolumeSize": 60
+              "VolumeSize": 80,
+              "VolumeType": "io1",
+              "Iops": 2400
             }
           }
         ]
@@ -604,7 +508,8 @@
           {
             "DeviceName": "/dev/xvdb",
             "Ebs": {
-              "VolumeSize": 200
+              "VolumeSize": 200,
+              "VolumeType": "gp2"
             }
           }
         ]
@@ -649,6 +554,30 @@
             "Value": "{{project_tag}}"
           }
         ]
+      }
+    },
+    "RegistryS3": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "{{config}}-{{guid}}",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "s3-{{config}}-{{guid}}"
+          },
+          {
+            "Key": "Project",
+            "Value": "{{project_tag}}"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "RegistryS3Output": {
+      "Description": "The ID of the S3 Bucket",
+      "Value": {
+        "Ref": "RegistryS3"
       }
     }
   }

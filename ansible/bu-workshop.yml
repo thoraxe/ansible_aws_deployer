@@ -271,7 +271,7 @@
 
     - name: 'Copy pipelines extension script to server'
       copy:
-        src: files/bu-workshop/tech-preview.js
+        src: files/{{config}}/tech-preview.js
         dest: /etc/origin/master/tech-preview.js
 
     - name: 'Check for the extensionScripts directive in the master config'
@@ -312,7 +312,7 @@
 
     - name: Copy nexus.yaml to master
       copy:
-        src: files/bu-workshop/nexus.yaml
+        src: files/{{config}}/nexus.yaml
         dest: /root/nexus.yaml
 
     - name: Check if Nexus was already provisioned
@@ -359,7 +359,7 @@
 
     - name: Copy Nexus addrepo script
       copy:
-        src: files/bu-workshop/addrepo.sh
+        src: files/{{config}}/addrepo.sh
         dest: /root/addrepo.sh
 
     - name: Check for redhat-ga repository in Nexus
@@ -386,7 +386,7 @@
 
     - name: Copy gitlab-template.yaml to master
       copy:
-        src: files/bu-workshop/gitlab-template.yaml
+        src: files/{{config}}/gitlab-template.yaml
         dest: /root/gitlab-template.yaml
 
     - name: Check if Gitlab was already provisioned
@@ -414,7 +414,7 @@
 
     - name: Copy simple-java-s2i IS to server
       copy:
-        src: files/bu-workshop/java-s2i-is.yaml
+        src: files/{{config}}/java-s2i-is.yaml
         dest: /root/java-s2i-is.yaml
       tags:
         - "copy-java-s2i-is"
@@ -468,7 +468,7 @@
 
     - name: Copy project request template to master
       copy:
-        src: files/bu-workshop/project-template.yaml
+        src: files/{{config}}/project-template.yaml
         dest: /root/project-template.yaml
 
     - name: Check for project request template
@@ -516,7 +516,7 @@
 
     - name: Copy user provision Ansible script remotely
       copy:
-        src: files/bu-workshop/userprovision.yaml
+        src: files/{{config}}/userprovision.yaml
         dest: /root/userprovision.yaml
 
     - name: Set Gitlab internal hostname
@@ -587,7 +587,7 @@
 
     - name: Deploy maven settings file
       template:
-        src: files/bu-workshop/maven.xml.j2
+        src: files/{{config}}/maven.xml.j2
         dest: /home/ec2-user/maven.xml
         mode: 0755
         owner: ec2-user
