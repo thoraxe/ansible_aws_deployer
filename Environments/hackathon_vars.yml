@@ -128,7 +128,7 @@ etcd_instance_type: "{{ master_instance_type }}"
 infranode_instance_type: "m4.xlarge"
 node_instance_type: "m4.xlarge" # r3.2xlarge
 key_name: "hackathon"
-num_nodes: "2"
+num_nodes: "6"
 
 #s3_registry_bucket_user: 'arn:aws:iam::719622469867:user/sborenst'
 #s3_registry_bucket_name: "docker-registry"

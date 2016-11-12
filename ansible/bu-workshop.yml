@@ -206,6 +206,7 @@
   become: yes
   vars_files:
     - "../Environments/{{config}}_vars.yml"
+    - "../Environments/{{config}}_secret_vars.yml"
   tags: [ workshop, workshop_admins ]
   tasks:
 
@@ -467,8 +468,8 @@
   tasks:
 
     - name: Copy project request template to master
-      copy:
-        src: files/{{config}}/project-template.yaml
+      template:
+        src: files/{{config}}/project-template.yaml.j2
         dest: /root/project-template.yaml
 
     - name: Check for project request template
@@ -499,6 +500,7 @@
   become: yes
   vars_files:
     - "../Environments/{{config}}_vars.yml"
+    - "../Environments/{{config}}_secret_vars.yml"
   tags: [ workshop, workshop_users ]
   tasks:
 
@@ -546,6 +548,7 @@
         -e user={{item}}
         -e root_token={{root_token}}
         -e gitlab_hostname={{gitlab_hostname}}
+        -e default_password={{default_password}}
       with_sequence: start=0 end={{ user_vols }} format=%02d
 
 - name: Cache Java dependencies
