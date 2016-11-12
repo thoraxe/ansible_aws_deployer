@@ -56,6 +56,15 @@ cache_images:
   - "registry.access.redhat.com/jboss-eap-7/eap70-openshift:latest"
   - "registry.access.redhat.com/rhscl/mongodb-32-rhel7:latest"
 
+##### Project Templates Configuration
+# Number of Pods per project allowed
+num_pods: 16
+num_pods: 16
+max_cpu: 4000m
+max_memory: 1024Mi
+default_cpu: 4000m
+default_memory: 1024Mi
+
 ### OpenShift Vars
 repo_version: "3.3"
 docker_version: "1.10.3"
