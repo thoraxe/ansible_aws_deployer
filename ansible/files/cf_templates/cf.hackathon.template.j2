@@ -435,12 +435,12 @@
     "AppAsg": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
-        "DesiredCapacity": {{ number_of_nodes }},
+        "DesiredCapacity": {{ num_nodes }},
         "LaunchConfigurationName": {
           "Ref": "AppLC"
         },
-        "MaxSize": {{ number_of_nodes }},
-        "MinSize": {{ number_of_nodes }},
+        "MaxSize": {{ num_nodes }},
+        "MinSize": {{ num_nodes }},
         "Tags": [
           {
             "Key": "Name",
