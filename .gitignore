@@ -3,3 +3,6 @@
 workdir/cf.*.json
 workdir/hosts-*
 workdir/ssh-*
+bu-workshop_secret_vars.yml
+hackathon_secret_vars.yml
+access_key.pub
