@@ -4,10 +4,10 @@
   hosts: localhost
   become: yes
   vars_files:
-    - "bu-workshop_vars.yml"
+    - "{{config}}_vars.yml"
   tasks:
 
-  - name: 'Add user{{user}} to htpasswd file' 
+  - name: 'Add user{{user}} to htpasswd file'
     command: "htpasswd -b /etc/origin/master/htpasswd user{{ user }} openshift3"
 
   - name: 'Check for explore-{{user}} project'
@@ -28,7 +28,7 @@
       return_content: yes
     register: user_result
     ignore_errors: true
-  
+
   - name: 'Create user{{user}} in GitLab'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/users'
@@ -53,7 +53,7 @@
     until: token_out|success
     retries: 3
     delay: 60
-  
+
   - name: 'Check if user{{user}} project exists'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/projects/user{{user}}%2Fnationalparks'
@@ -63,7 +63,7 @@
       return_content: no
     register: project_absent
     ignore_errors: true
-  
+
   - name: 'Import nationalparks repository for user{{user}}'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/projects'
@@ -77,4 +77,3 @@
     retries: 3
     delay: 60
     when: project_absent | success
-
