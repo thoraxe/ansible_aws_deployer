@@ -102,7 +102,7 @@ aws_secret_access_key = bar
 ### Add the SSH Key to the SSH Agent
 If your operating system has an SSH agent and you are not using your default
 configured SSH key, you will need to add the private key you use with your EC2
-instances to your SSH agent: 
+instances to your SSH agent:
 ```
 ssh-add <path to key file>
 ```
@@ -158,6 +158,9 @@ you provisioned, find the deployed stack, and delete it.
 ### SSH config
 This Ansible script places entries into your `~/.ssh/config`. It is recommended
 that you remove them once you are done with your environment.
+
+### Subscriptions
+When you simply throw away the CloudFormation stack, the systems stay attached to your subscription. Go to access.redhat.com, manage your subs and remove the systems manually.
 
 ## Troubleshooting
 Information will be added here as problems are solved. So far it's pretty
