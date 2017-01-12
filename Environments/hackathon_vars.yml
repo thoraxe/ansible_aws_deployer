@@ -38,6 +38,7 @@ user_vols: 20
 user_prefix: "{{guid}}"
 user_passwords_file: "../workdir/user-pwds-{{guid}}.csv"
 user_vols_size: 5Gi
+user_allow_container_with_root: true
 
 cache_images:
   - "openshift3/logging-elasticsearch"

@@ -520,12 +520,17 @@
     - "../Environments/{{config}}_secret_vars.yml"
   tags: [ workshop, workshop_users ]
   tasks:
+
     - name: Add log path to Ansible configuration
       lineinfile:
         regexp: "^#log_path"
         dest: "/etc/ansible/ansible.cfg"
         line: "log_path = /root/ansible.log"
         state: present
+
+    - name: Enable all users to run images with USER and ROOT in the Dockerfile
+      command: "oadm policy add-scc-to-group anyuid system:authenticated"
+      when: user_allow_container_with_root
 
     - name: Copy vars file to master
       copy:
@@ -584,6 +589,18 @@
         -e gitlab_hostname={{gitlab_hostname}}
         -e default_password=redhat01
 
+    - name: Create demo project
+      shell: oc new-project demo --as=demo01 --description=Feel free to play around here. All content will be deleted daily 05:00 CET
+      ignore_errors: true
+
+    - name: Create cronjob to delete all content in demo project nightly
+      cron:
+        name: "clean demo project"
+        minute: "0"
+        hour: "5"
+        job: "oc delete all --all -n demo> /dev/null"
+
+
 - name: Cache Java dependencies
   hosts: masters
   become: yes
@@ -632,3 +649,27 @@
       shell: >
         mvn -q -s /home/ec2-user/maven.xml -f /home/ec2-user/repos/{{ item }}/pom.xml install
       with_items: '{{workshop_repos}}'
+
+- name: Setup Prometheus Monitoring
+  hosts: masters
+  become: yes
+  vars_files:
+    - "../Environments/{{config}}_vars.yml"
+  tags: [ monitoring ]
+  tasks:
+      - name: Check if prometheus
+        command: "oc get project prometheus"
+        register: install_prometheus
+        ignore_errors: true
+
+      - block:
+          - command: "oc new-project prometheus --description='Contains fabric8 prometheus grafana for monitoring openshift'"
+          - command: "oc create serviceaccount metrics -n prometheus"
+          - command: "oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:prometheus:metrics"
+          - command: "oc create -f https://raw.githubusercontent.com/fabric8io/templates/master/default/template/prometheus.json -n prometheus"
+          - command: "oc new-app prometheus"
+          - command: "oc expose service prometheus --port=9090 -n prometheus"
+          - command: "oc create -f https://raw.githubusercontent.com/fabric8io/templates/master/default/template/grafana2.json -n prometheus"
+          - command: "oc new-app grafana2"
+          - command: "oc expose service grafana2 -n prometheus --port=3000"
+        when: install_prometheus | failed
