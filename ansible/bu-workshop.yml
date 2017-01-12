@@ -495,6 +495,23 @@
         state: restarted
       when: master_config.changed
 
+- name: Workshop User Passwords
+  hosts: localhost
+  vars_files:
+    - "../Environments/{{config}}_vars.yml"
+    - "../Environments/{{config}}_secret_vars.yml"
+  tags: [ workshop, workshop_users ]
+  tasks:
+    - name: Ensure password for each user exists in user passwords files
+      lineinfile:
+        regexp: "^{{user_prefix}}{{item}}"
+        dest: "{{user_passwords_file}}"
+        create: yes
+        line: "{{user_prefix}}{{item}};{{ lookup('password', '/tmp/password_{{item}}.txt length=12 chars=ascii_letters,digits') }}"
+        state: present
+      with_sequence: start=0 end={{ user_vols }} format=%02d
+
+
 - name: Workshop Users
   hosts: masters
   become: yes
@@ -503,7 +520,6 @@
     - "../Environments/{{config}}_secret_vars.yml"
   tags: [ workshop, workshop_users ]
   tasks:
-
     - name: Add log path to Ansible configuration
       lineinfile:
         regexp: "^#log_path"
@@ -515,6 +531,11 @@
       copy:
         src: "../Environments/{{config}}_vars.yml"
         dest: "/root/{{config}}_vars.yml"
+
+    - name: Copy passwords file to master
+      copy:
+        src: "{{user_passwords_file}}"
+        dest: "/root/userpasswords.csv"
 
     - name: Copy user provision Ansible script remotely
       copy:
@@ -545,11 +566,23 @@
         ansible-playbook
         -i localhost /root/userprovision.yaml
         -e config={{config}}
+        -e user_prefix={{user_prefix}}
         -e user={{item}}
         -e root_token={{root_token}}
         -e gitlab_hostname={{gitlab_hostname}}
-        -e default_password={{default_password}}
+        -e default_password={{ lookup('csvfile', '{{user_prefix}}{{item}} file={{user_passwords_file}} delimiter=; col=1') }}
       with_sequence: start=0 end={{ user_vols }} format=%02d
+
+    - name: Create demo01 user
+      shell: >
+        ansible-playbook
+        -i localhost /root/userprovision.yaml
+        -e config={{config}}
+        -e user_prefix=demo
+        -e user=01
+        -e root_token={{root_token}}
+        -e gitlab_hostname={{gitlab_hostname}}
+        -e default_password=redhat01
 
 - name: Cache Java dependencies
   hosts: masters

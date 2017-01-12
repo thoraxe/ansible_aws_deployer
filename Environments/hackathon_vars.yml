@@ -18,11 +18,13 @@ use_opentlc_repos: false
 nfs_vg: nfsvg
 nfs_pvs: /dev/xvdb
 nfs_export_path: /srv/nfs
+time_zone: "Europe/Berlin"
+
 
 nfs_shares:
     - user-vols
     - es-storage
-    - logging
+#    - logging # Created by openshift installer
 
 workshop_shares:
     - postgres
@@ -31,7 +33,10 @@ workshop_shares:
     - gitlab-etc
     - redis
 
-user_vols: 50
+# Numer of users:
+user_vols: 20
+user_prefix: "{{guid}}"
+user_passwords_file: "../workdir/user-pwds-{{guid}}.csv"
 user_vols_size: 5Gi
 
 cache_images:
@@ -59,7 +64,7 @@ cache_images:
 
 ##### Project Templates Configuration
 # Number of Pods per project allowed
-num_pods: 16
+num_pods: 10
 max_cpu: 4000m
 max_memory: 1024Mi
 default_cpu: 4000m
@@ -78,7 +83,7 @@ master_lb_dns: "master.{{subdomain_base}}"
 
 cloudapps_suffix: 'cloudapps.{{subdomain_base}}'
 openshift_master_ldap_ca_file: 'openshift_master_ldap_ca_file=/root/ca.crt'
-osrelease: 3.3.1.3
+osrelease: 3.3.1.7
 openshift_master_overwrite_named_certificates: true
 
 
@@ -97,8 +102,9 @@ master_public_dns: "master.{{subdomain_base}}."
 vpcid_cidr_block: "192.168.0.0/16"
 vpcid_name_tag: "{{subdomain_base}}"
 
-az_1_name: "{{ aws_region }}b"
-az_2_name: "{{ aws_region }}c"
+# DFR: Changed from b/c to a/b
+az_1_name: "{{ aws_region }}a"
+az_2_name: "{{ aws_region }}b"
 
 subnet_private_1_cidr_block: "192.168.2.0/24"
 subnet_private_1_az: "{{ az_2_name }}"
@@ -122,13 +128,14 @@ rtb_public_name_tag: "{{subdomain_base}}-public"
 rtb_private_name_tag: "{{subdomain_base}}-private"
 
 nfs_instance_type: "c3.large"
-bastion_instance_type: "t2.large"
+bastion_instance_type: "t2.medium"
 master_instance_type: "t2.large"
 etcd_instance_type: "{{ master_instance_type }}"
 infranode_instance_type: "m4.xlarge"
 node_instance_type: "m4.xlarge" # r3.2xlarge
 key_name: "hackathon"
-num_nodes: "6"
+# Initially only one node, we will scale up later:
+num_nodes: "1"
 
 #s3_registry_bucket_user: 'arn:aws:iam::719622469867:user/sborenst'
 #s3_registry_bucket_name: "docker-registry"

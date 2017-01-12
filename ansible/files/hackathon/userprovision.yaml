@@ -7,8 +7,8 @@
     - "{{config}}_vars.yml"
   tasks:
 
-  - name: 'Add user{{user}} to htpasswd file'
-    command: "htpasswd -b /etc/origin/master/htpasswd user{{ user }} {{default_password}}"
+  - name: 'Add {{ user_prefix }}{{user}} to htpasswd file'
+    command: "htpasswd -b /etc/origin/master/htpasswd {{ user_prefix }}{{ user }} {{default_password}}"
 
   - name: 'Check for explore-{{user}} project'
     command: "oc get project explore-{{user}}"
@@ -16,12 +16,12 @@
     ignore_errors: true
 
   - name: 'Create explore-{{user}} project'
-    command: "oc new-project explore-{{user}} --as=user{{user}} --skip-config-write"
+    command: "oc new-project explore-{{user}} --as={{ user_prefix }}{{user}} --skip-config-write"
     when: project_out | failed
 
-  - name: 'Check for user{{user}} in GitLab'
+  - name: 'Check for {{ user_prefix }}{{user}} in GitLab'
     uri:
-      url: 'http://gitlab-ce.workshop-infra.svc.cluster.local/api/v3/users?username=user{{user}}'
+      url: 'http://gitlab-ce.workshop-infra.svc.cluster.local/api/v3/users?username={{ user_prefix }}{{user}}'
       HEADER_PRIVATE-TOKEN: "{{root_token}}"
       method: GET
       status_code: 200
@@ -29,11 +29,11 @@
     register: user_result
     ignore_errors: true
 
-  - name: 'Create user{{user}} in GitLab'
+  - name: 'Create {{ user_prefix }}{{user}} in GitLab'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/users'
       HEADER_PRIVATE-TOKEN: "{{root_token}}"
-      body: 'confirm=false&email=user{{user}}@example.com&username=user{{user}}&name=user{{user}}&password={{default_password}}'
+      body: 'confirm=false&email={{ user_prefix }}{{user}}@example.com&username={{ user_prefix }}{{user}}&name={{ user_prefix }}{{user}}&password={{default_password}}'
       method: POST
       status_code: 201
       return_content: no
@@ -43,10 +43,10 @@
     delay: 60
     when: 'user_result.json == []'
 
-  - name: 'Get user{{user}} token'
+  - name: 'Get {{ user_prefix }}{{user}} token'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/session'
-      body: 'login=user{{user}}&password={{default_password}}'
+      body: 'login={{ user_prefix }}{{user}}&password={{default_password}}'
       method: POST
       status_code: 201
     register: token_out
@@ -54,9 +54,9 @@
     retries: 3
     delay: 60
 
-  - name: 'Check if user{{user}} project exists'
+  - name: 'Check if {{ user_prefix }}{{user}} project exists'
     uri:
-      url: 'http://{{gitlab_hostname}}/api/v3/projects/user{{user}}%2Fnationalparks'
+      url: 'http://{{gitlab_hostname}}/api/v3/projects/{{ user_prefix }}{{user}}%2Fnationalparks'
       HEADER_PRIVATE-TOKEN: "{{token_out.json.private_token}}"
       method: GET
       status_code: 404
@@ -64,7 +64,7 @@
     register: project_absent
     ignore_errors: true
 
-  - name: 'Import nationalparks repository for user{{user}}'
+  - name: 'Import nationalparks repository for {{ user_prefix }}{{user}}'
     uri:
       url: 'http://{{gitlab_hostname}}/api/v3/projects'
       HEADER_PRIVATE-TOKEN: "{{token_out.json.private_token}}"
