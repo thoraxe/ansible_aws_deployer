@@ -433,7 +433,7 @@
     - name: Build workshop lab server
       shell: >
         oc new-app
-        --name=labs https://github.com/openshift-evangelists/openshift-workshops.git#fy17-roadshow-work \
+        --name=labs https://github.com/openshift-evangelists/openshift-workshops.git#1.0.0 \
         -e ROUTER_ADDRESS={{cloudapps_suffix}}
         -e CONSOLE_ADDRESS=master.{{subdomain_base}}
         -n workshop-infra;
@@ -495,6 +495,23 @@
         state: restarted
       when: master_config.changed
 
+- name: Workshop User Passwords
+  hosts: localhost
+  vars_files:
+    - "../Environments/{{config}}_vars.yml"
+    - "../Environments/{{config}}_secret_vars.yml"
+  tags: [ workshop, workshop_users ]
+  tasks:
+    - name: Ensure password for each user exists in user passwords files
+      lineinfile:
+        regexp: "^{{user_prefix}}{{item}}"
+        dest: "{{user_passwords_file}}"
+        create: yes
+        line: "{{user_prefix}}{{item}};{{ lookup('password', '/tmp/password_{{item}}.txt length=12 chars=ascii_letters,digits') }}"
+        state: present
+      with_sequence: start=0 end={{ user_vols }} format=%02d
+
+
 - name: Workshop Users
   hosts: masters
   become: yes
@@ -511,10 +528,19 @@
         line: "log_path = /root/ansible.log"
         state: present
 
+    - name: Enable all users to run images with USER and ROOT in the Dockerfile
+      command: "oadm policy add-scc-to-group anyuid system:authenticated"
+      when: user_allow_container_with_root
+
     - name: Copy vars file to master
       copy:
         src: "../Environments/{{config}}_vars.yml"
         dest: "/root/{{config}}_vars.yml"
+
+    - name: Copy passwords file to master
+      copy:
+        src: "{{user_passwords_file}}"
+        dest: "/root/userpasswords.csv"
 
     - name: Copy user provision Ansible script remotely
       copy:
@@ -545,11 +571,35 @@
         ansible-playbook
         -i localhost /root/userprovision.yaml
         -e config={{config}}
+        -e user_prefix={{user_prefix}}
         -e user={{item}}
         -e root_token={{root_token}}
         -e gitlab_hostname={{gitlab_hostname}}
-        -e default_password={{default_password}}
+        -e default_password={{ lookup('csvfile', '{{user_prefix}}{{item}} file={{user_passwords_file}} delimiter=; col=1') }}
       with_sequence: start=0 end={{ user_vols }} format=%02d
+
+    - name: Create demo01 user
+      shell: >
+        ansible-playbook
+        -i localhost /root/userprovision.yaml
+        -e config={{config}}
+        -e user_prefix=demo
+        -e user=01
+        -e root_token={{root_token}}
+        -e gitlab_hostname={{gitlab_hostname}}
+        -e default_password=redhat01
+
+    - name: Create demo project
+      shell: oc new-project demo --as=demo01 --description=Feel free to play around here. All content will be deleted daily 05:00 CET
+      ignore_errors: true
+
+    - name: Create cronjob to delete all content in demo project nightly
+      cron:
+        name: "clean demo project"
+        minute: "0"
+        hour: "5"
+        job: "oc delete all --all -n demo> /dev/null"
+
 
 - name: Cache Java dependencies
   hosts: masters
@@ -599,3 +649,27 @@
       shell: >
         mvn -q -s /home/ec2-user/maven.xml -f /home/ec2-user/repos/{{ item }}/pom.xml install
       with_items: '{{workshop_repos}}'
+
+- name: Setup Prometheus Monitoring
+  hosts: masters
+  become: yes
+  vars_files:
+    - "../Environments/{{config}}_vars.yml"
+  tags: [ monitoring ]
+  tasks:
+      - name: Check if prometheus
+        command: "oc get project prometheus"
+        register: install_prometheus
+        ignore_errors: true
+
+      - block:
+          - command: "oc new-project prometheus --description='Contains fabric8 prometheus grafana for monitoring openshift'"
+          - command: "oc create serviceaccount metrics -n prometheus"
+          - command: "oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:prometheus:metrics"
+          - command: "oc create -f https://raw.githubusercontent.com/fabric8io/templates/master/default/template/prometheus.json -n prometheus"
+          - command: "oc new-app prometheus"
+          - command: "oc expose service prometheus --port=9090 -n prometheus"
+          - command: "oc create -f https://raw.githubusercontent.com/fabric8io/templates/master/default/template/grafana2.json -n prometheus"
+          - command: "oc new-app grafana2"
+          - command: "oc expose service grafana2 -n prometheus --port=3000"
+        when: install_prometheus | failed

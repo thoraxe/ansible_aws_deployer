@@ -29,3 +29,8 @@
     yum:
       name: '*'
       state: latest
+
+######################### Configure Timezone
+  - name: Configure Timezone
+    timezone:
+      name: "{{time_zone}}"
